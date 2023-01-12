@@ -23,6 +23,34 @@ for current in range(start, line_count + 1):            # нумерация с 
     # print(current, line.strip())                      # проверка
 """
 
+"""
+# библиотека requests: 
+    import requests
+    
+    res = requests.get('https://www.google.ru/search?q='+line)  # GET-запрос
+
+    print(res)              # ответ на запрос (?)
+    print(res.status_code)  # код статуса 200 == OK
+    print(res.headers)      # ответ в виде заголовка?
+    print(res.text)         # вывод текстовых данных ответа (просматриваемой страницы)
+
+    # пример запроса GET, чтобы получить ответ != 200:
+    res = requests.get('https://www.yandex.ru/404')
+"""
+
+"""
+# JSON: читаем из файла номер "стартовой" строки ('r' - файл открыт только для чтения):
+    with open("Text/data.json", 'r') as f:
+        data = f.read()
+        start = json.loads(data)
+"""
+
+"""
+# JSON: записываем ('w') номер стартовой строки в файл:
+    with open("Text/data.json", 'w') as f:
+        json.dump(current + 1, f)
+"""
+
 # file1.seek(0) - переход к началу текстового файла (в скобках номер байта, с которого читаем)
 
 import keyboard
@@ -36,5 +64,5 @@ def Wait_test(ms):
         if keyboard.is_pressed('q'):            # if key 'q' is pressed
             print('You Pressed q Key!')
 
-
-Wait_test(10000)
+if __name__ == "__main__":
+    Wait_test(10000)
