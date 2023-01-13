@@ -23,37 +23,40 @@ def read_ini(file_name, number):  # читаем конфигурационны�
     # 1: стартовая строка чтения из файла queries.txt
     if number == 1:
         if conf.has_option("base_settings", "start_string"):
-            rezult = conf.getint("base_settings", "start_string")
+            base_settings = conf.getint("base_settings", "start_string")
 
     # 2: интервал опроса поисковых систем, мс
     elif number == 2:
         if conf.has_option("base_settings", "wait_interval"):
-            rezult = conf.getint("base_settings", "wait_interval")
+            base_settings = conf.getint("base_settings", "wait_interval")
 
     # 3: количество загружаемых поисковых страниц
     elif number == 3:
         if conf.has_option("base_settings", "search_page_number"):
-            rezult = conf.getint("base_settings", "search_page_number")
+            base_settings = conf.getint("base_settings", "search_page_number")
 
     # 4: заглушка
     else:
         print("ошибка чтения: параметр не найден! значение по умолчанию = 1")
-        rezult = 1
+        base_settings = 1
 
-    return rezult
+    return base_settings
 
 
 def write_ini(file_name, number, value):   # записываем параметр в конфигурационный файл .ini
     section = "base_settings"
 
     # 1: стартовая строка чтения из файла queries.txt
-    if number == 1: parameter = "start_string"
+    if number == 1:
+        parameter = "start_string"
 
     # 2: интервал опроса поисковых систем, мс
-    elif number == 2: parameter = "wait_interval"
+    elif number == 2:
+        parameter = "wait_interval"
 
     # 3: количество загружаемых поисковых страниц
-    elif number == 3: parameter = "search_page_number"
+    elif number == 3:
+        parameter = "search_page_number"
 
     # 4: заглушка
     else:
@@ -70,7 +73,12 @@ def write_ini(file_name, number, value):   # записываем парамет
 
 
 def get_link(temp_string):  # вытаскиваем из строки ссылку
-    a = temp_string.find("https:")
+    # добавить примеры исходных строк
+
+    # !!!!!!!!!!!!!!!!!
+    # !!!!!!!!!!!!!!!!!
+
+    a = temp_string.find("http")
     b = temp_string.find("&amp")
 
     if a == -1 or b == -1:
@@ -83,6 +91,10 @@ def get_link(temp_string):  # вытаскиваем из строки ссыл�
 def parsing(line, iters):
     allHeader3  = []  # список для заголовков <h3>
     allLinks    = []  # список для тэгов ссылок <а>
+
+    # переименовать переменные !!!!!
+    # links_name
+
 
     for i in range(1, iters+1):
         url = "https://www.google.ru/search?q=" + line + "&start=" + str((i-1)*10)
@@ -120,6 +132,9 @@ def parsing(line, iters):
                 # allLinks[i] = temp_string.find_parents('a')              -> а здесь ищем родителя для тэга с выбранным ранее текстом
                 allLinks[i] = soup.find(string=allHeader3[i].get_text()).find_parent("a")
 
+                allLinks.append(i) = ....
+
+
                 # проверка: вывод необработанной ссылки, чтобы отлавливать баги:
                 # print(allLinks[i])
 
@@ -136,7 +151,7 @@ def main():
     # читаем из ini-файла:
     start = read_ini("Text/set.ini", 1)  # номер "стартовой" строки
     ms    = read_ini("Text/set.ini", 2)  # интервал опроса
-    iters = read_ini("Text/set.ini", 3)  # количество запрашиваемых страниц поиска
+    pages = read_ini("Text/set.ini", 3)  # количество запрашиваемых страниц поиска
 
     # проверка:
     # print("Стартовая строка:", start)
