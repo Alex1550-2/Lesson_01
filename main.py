@@ -73,10 +73,10 @@ def write_ini(file_name, number, value):   # записываем парамет
 
 
 def get_link(temp_string):  # вытаскиваем из строки ссылку
-    # добавить примеры исходных строк
-
-    # !!!!!!!!!!!!!!!!!
-    # !!!!!!!!!!!!!!!!!
+    # примеры ссылок:
+    # <a href="/url?q=https://www.python.org/&amp;sa=U&amp;ved=2ahUKEwic0Oa5m ...
+    # <a href="/url?q=https://ru.wikipedia.org/wiki/Python&amp;sa=U&amp;ved=2 ...
+    # т.е. в исходной строке ссылка начинается на "http" и заканчивается ДО амперсанда "&amp"
 
     a = temp_string.find("http")
     b = temp_string.find("&amp")
@@ -88,15 +88,11 @@ def get_link(temp_string):  # вытаскиваем из строки ссыл�
     return temp_string
 
 
-def parsing(line, iters):
-    allHeader3  = []  # список для заголовков <h3>
-    allLinks    = []  # список для тэгов ссылок <а>
+def parsing(line, pages):
+    link_name   = []  # список для тэгов <h3>, содержащих название ссылки
+    link_object = []  # список для тэгов <а>, содержащих собственно ссылку
 
-    # переименовать переменные !!!!!
-    # links_name
-
-
-    for i in range(1, iters+1):
+    for i in range(1, pages + 1):
         url = "https://www.google.ru/search?q=" + line + "&start=" + str((i-1)*10)
 
         # проверка: вывод фактического url, отправленного поисковику
@@ -115,35 +111,19 @@ def parsing(line, iters):
             print(page.status_code)
 
         else:
-            soup = BeautifulSoup(page.text, "html.parser")  # html.parser встроен в Python
+            soup = BeautifulSoup(page.content, "html.parser")  # html.parser встроен в Python
             # print(soup.prettify())
 
             # ищем на html-странице soup все тэги <h3> (заголовки наших поисковых ссылок)
-            allHeader3 = soup.findAll("h3")
+            link_name = soup.findAll("h3")
 
-            for i in range(0, len(allHeader3)):
-                # создаём пустой элемент списка ссылок:
-                allLinks.append(i)
+            for link_name in link_name:
+                # находим родительский тэг <a> для <h3> и вытаскиваем из него ссылку:
+                link_object = get_link(str(link_name.find_parent("a")))
 
-                # ищем родителя для тэга:
-                # функция "текст.find_parents(аргумент)": ищем родителя для тэга <h3> (массив allHeader3) с названием 'а':
-                # "текст" для функции поиска родителя ищем в html-странице soup с помощью функции find(аргумент)
-                # temp_string = soup.find(string=allHeader3[i].get_text()) -> здесь выбираем "текст"
-                # allLinks[i] = temp_string.find_parents('a')              -> а здесь ищем родителя для тэга с выбранным ранее текстом
-                allLinks[i] = soup.find(string=allHeader3[i].get_text()).find_parent("a")
-
-                allLinks.append(i) = ....
-
-
-                # проверка: вывод необработанной ссылки, чтобы отлавливать баги:
-                # print(allLinks[i])
-
-                # вытаскиваем из строки ссылку:
-                allLinks[i] = get_link(str(allLinks[i]))
-
-                # вывод на печать только значений != None:
-                if any(allLinks[i]) and any(allHeader3[i]):
-                    print(allLinks[i] + " " + allHeader3[i].text)
+                # вывод на печать значений != None:
+                if any(link_object) and any(link_name):
+                    print(link_object + " " + link_name.text)
 
 
 
@@ -181,7 +161,7 @@ def main():
                         print("========================")
 
                         # здесь запускаем функцию parsing
-                        parsing(line, iters)
+                        parsing(line, pages)
 
                     # ждём секунду:
                     wait(ms)
@@ -203,10 +183,8 @@ def main():
 
 if __name__ == "__main__":
     main()
+    # parsing("python", 1)
 
-    # parsing("tests", 2)
-    # parsing('python')
-    # parsing()
 
 
 
