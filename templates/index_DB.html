@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>My_Server_from_DataBase</title>
+        <meta http-equiv="Content-Type" content="text/html" charset="utf-8">
+        <!--чтобы не было ошибки на отсутствие иконки
+        favicon.ico this request has no initial data
+        добавляем строку ниже:-->
+        <link rel="icon" href="data:,">
+        <!--выравниваем текст в полях ввода по центру-->
+        <style type="text/css">
+        input {
+        text-align: center;
+        }
+        </style>
+    </head>
+    <body style="text-align:center;" id="body">
+        <h1> Это сервер базы данных {{server.server_name}}! </h1>
+        <p>
+            <input type="text" id="new_text_queries" size="60" placeholder="Введите новый запрос" >
+        </p>
+        <p>
+            <!-- запрос "POST": по нажатию на эту кнопку json будет передан на сервер: -->
+            <button onclick="add_JSON_DB()">Добавить запрос</button>
+
+            <!-- запрос "GET": -->
+            <button onclick="getALL_DB()">Получить список запросов</button>
+
+            <!-- запрос "DELETE": -->
+            <button onclick="deleteALL_DB()">Удалить список запросов</button>
+        </p>
+
+        <p>
+            <!-- окно ввода имеет тип type="number": ввод только цифр -->
+            <input type="number" id="primary_key" size="20" placeholder="Введите id запроса">
+
+            <!-- запрос "POST": по нажатию на эту кнопку json будет передан на сервер: -->
+            <button onclick="sendJSON_add_DB()">Добавить запрос по номеру</button>
+
+            <!-- запрос "POST": по нажатию на эту кнопку json будет передан на сервер: -->
+            <button onclick="sendJSON_del_DB()">Удалить запрос по номеру</button>
+
+            <!-- запрос "POST": по нажатию на эту кнопку json будет передан на сервер: -->
+            <button onclick="sendJSON_show_DB()">Отобразить запрос по номеру</button>
+        </p>
+
+        <p>
+            <!-- запрос "GET": старт процедуры заполнения БД из файла: -->
+            <button onclick="all_add_DB()">Заполнить БД из текстового файла</button>
+        </p>
+
+            <!-- здесь вернётся ответ от сервера: -->
+        <p class="result" style="color:blue"></p>
+    </body>
+
+    <!-- "хлебные крошки": вывод в консоль значения "10":
+    console.log(10); -->
+</html>
+
+
+<!-- скрипт, который обработает нажатие на кнопку sendJSON и отправит запрос POST на сервер -->
+<script>
+    // эта функция сработает при нажатии на кнопку "Добавить запрос"
+    function add_JSON_DB() {
+
+        // с помощью jQuery обращаемся к элементам на странице по их именам
+        let new_text_queries = document.querySelector('#new_text_queries');
+
+        // отклоняем пустое значение новой записи
+        if (new_text_queries.value === "")
+            return;
+
+        // а вот сюда мы поместим ответ от сервера
+        let result = document.querySelector('.result');
+
+        // создаём новый экземпляр запроса XHR
+        let xhr = new XMLHttpRequest();
+
+        // адрес, куда мы отправим наш запрос
+        let url = "http://127.0.0.1:8000/queries";
+
+        // открываем соединение
+        xhr.open("POST", url, true);
+
+        // устанавливаем заголовок — выбираем тип контента, который отправится на сервер,
+        // в нашем случае мы явно пишем, что это JSON
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        // когда придёт ответ на наше обращение к серверу, мы его обработаем здесь
+        xhr.onreadystatechange = function () {
+        // если запрос принят и сервер ответил, что всё в порядке
+            if (xhr.readyState === 4 && xhr.status === 200) {
+            // выводим то, что ответил нам сервер — так мы убедимся, что данные он получил правильно
+            result.innerHTML = this.responseText;
+
+            // удаляем из поля успешно записанное значение строки:
+            document.getElementById('new_text_queries').value = ''
+            }
+        };
+
+        // преобразуем наши данные JSON в строку
+        var data = JSON.stringify({ "new_queries": new_text_queries.value });
+
+        // когда всё готово, отправляем JSON на сервер
+        xhr.send(data);
+    }
+</script>
+
+
+<!-- скрипт, который обработает нажатие на кнопку ПОЛУЧИТЬ и отправит данные на сервер -->
+<script>
+    // эта функция сработает при нажатии на кнопку "Получить список запросов"
+    function getALL_DB() {
+
+        // а вот сюда мы поместим ответ от сервера
+        let result = document.querySelector('.result');
+
+        // создаём новый экземпляр запроса XHR
+        let xhr = new XMLHttpRequest();
+
+        // адрес, куда мы отправим наш запрос
+        let url = "http://127.0.0.1:8000/queries";
+
+        // открываем соединение
+        xhr.open("GET", url, true);
+
+        // устанавливаем заголовок — выбираем тип контента, который отправится на сервер,
+        // в случае "пустого" запроса GET по умолчанию устанавливается заголовок с типом "*/*"
+
+        // когда придёт ответ на наше обращение к серверу, мы его обработаем здесь
+            xhr.onreadystatechange = function () {
+            // если запрос принят и сервер ответил, что всё в порядке
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                // выводим то, что ответил нам сервер — так мы убедимся, что данные он получил правильно
+                result.innerHTML = this.responseText;
+
+                // удаляем из поля введённое (но не записанное!) значение строки:
+                document.getElementById('new_text_queries').value = ''
+                }
+            };
+
+        // когда всё готово, отправляем ПУСТОЙ JSON на сервер
+        xhr.send();
+    }
+</script>
+
+
+<!-- скрипт, который обработает нажатие на кнопку DELETE и отправит данные на сервер -->
+<script>
+    // эта функция сработает при нажатии на кнопку "Удалить список запросов"
+    function deleteALL_DB() {
+
+        // а вот сюда мы поместим ответ от сервера
+        let result = document.querySelector('.result');
+
+        // создаём новый экземпляр запроса XHR
+        let xhr = new XMLHttpRequest();
+
+        // адрес, куда мы отправим наш запрос
+        let url = "http://127.0.0.1:8000/delete";
+
+        // открываем соединение
+        xhr.open("DELETE", url, true);
+
+        // устанавливаем заголовок — выбираем тип контента, который отправится на сервер,
+        // в случае "пустого" запроса DELETE по умолчанию устанавливается заголовок с типом "*/*"
+
+        // когда придёт ответ на наше обращение к серверу, мы его обработаем здесь
+            xhr.onreadystatechange = function () {
+            // если запрос принят и сервер ответил, что всё в порядке
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                // выводим то, что ответил нам сервер — так мы убедимся, что данные он получил правильно
+                result.innerHTML = this.responseText;
+
+                // удаляем из поля введённое (но не записанное!) значение строки:
+                document.getElementById('new_text_queries').value = ''
+                }
+            };
+
+        // когда всё готово, отправляем ПУСТОЙ JSON на сервер
+        xhr.send();
+    }
+</script>
+
+
+<!-- скрипт, который обработает нажатие на кнопку sendJSON_del_DB и отправит запрос POST на сервер -->
+<script>
+    // эта функция сработает при нажатии на кнопку "Удалить запрос по номеру"
+    function sendJSON_del_DB() {
+
+        // с помощью jQuery обращаемся к элементам на странице по их именам
+        let primary_key = document.querySelector('#primary_key');
+
+        // отклоняем пустое значение новой записи
+        if (primary_key.value === "")
+            return;
+
+        // а вот сюда мы поместим ответ от сервера
+        let result = document.querySelector('.result');
+
+        // создаём новый экземпляр запроса XHR
+        let xhr = new XMLHttpRequest();
+
+        // адрес, куда мы отправим наш запрос
+        let url = "http://127.0.0.1:8000/delete_line_id";
+
+        // открываем соединение
+        xhr.open("POST", url, true);
+
+        // устанавливаем заголовок — выбираем тип контента, который отправится на сервер,
+        // в нашем случае мы явно пишем, что это JSON
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        // когда придёт ответ на наше обращение к серверу, мы его обработаем здесь
+        xhr.onreadystatechange = function () {
+        // если запрос принят и сервер ответил, что всё в порядке
+            if (xhr.readyState === 4 && xhr.status === 200) {
+            // выводим то, что ответил нам сервер — так мы убедимся, что данные он получил правильно
+            result.innerHTML = this.responseText;
+
+            // удаляем из поля успешно записанное значение строки:
+            document.getElementById('primary_key').value = ''
+            }
+        };
+
+        // преобразуем наши данные JSON в строку
+        var data = JSON.stringify({ "primary_key": primary_key.value });
+
+        // когда всё готово, отправляем JSON на сервер
+        xhr.send(data);
+    }
+</script>
+
+
+<!-- скрипт, который обработает нажатие на кнопку sendJSON_add_DB и отправит запрос POST на сервер -->
+<script>
+    // эта функция сработает при нажатии на кнопку "Добавить запрос по номеру"
+    function sendJSON_add_DB() {
+
+        // с помощью jQuery обращаемся к элементам на странице по их именам
+        let new_text_queries = document.querySelector('#new_text_queries');
+        let primary_key = document.querySelector('#primary_key');
+
+        // отклоняем пустое значение любого из элементов новой записи
+        if (new_text_queries.value === "" || primary_key.value === "")
+            return;
+
+        // а вот сюда мы поместим ответ от сервера
+        let result = document.querySelector('.result');
+
+        // создаём новый экземпляр запроса XHR
+        let xhr = new XMLHttpRequest();
+
+        // адрес, куда мы отправим наш запрос
+        let url = "http://127.0.0.1:8000/add_line_id";
+
+        // открываем соединение
+        xhr.open("POST", url, true);
+
+        // устанавливаем заголовок — выбираем тип контента, который отправится на сервер,
+        // в нашем случае мы явно пишем, что это JSON
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        // когда придёт ответ на наше обращение к серверу, мы его обработаем здесь
+        xhr.onreadystatechange = function () {
+        // если запрос принят и сервер ответил, что всё в порядке
+            if (xhr.readyState === 4 && xhr.status === 200) {
+            // выводим то, что ответил нам сервер — так мы убедимся, что данные он получил правильно
+            result.innerHTML = this.responseText;
+
+            // удаляем из поля успешно записанное значение строки:
+            document.getElementById('primary_key').value = ''
+            document.getElementById('new_text_queries').value = ''
+            }
+        };
+
+        // преобразуем наши данные JSON в строку
+        var data = JSON.stringify({ "primary_key": primary_key.value, "new_text_queries": new_text_queries.value });
+
+        // когда всё готово, отправляем JSON на сервер
+        xhr.send(data);
+    }
+</script>
+
+
+<!-- скрипт, который обработает нажатие на кнопку sendJSON_show_DB и отправит запрос POST на сервер -->
+<script>
+    // эта функция сработает при нажатии на кнопку "Отобразить запрос по номеру"
+    function sendJSON_show_DB() {
+
+        // с помощью jQuery обращаемся к элементам на странице по их именам
+        let primary_key = document.querySelector('#primary_key');
+
+        // отклоняем пустое значение любого из элементов новой записи
+        if (primary_key.value === "")
+            return;
+
+        // а вот сюда мы поместим ответ от сервера
+        let result = document.querySelector('.result');
+
+        // создаём новый экземпляр запроса XHR
+        let xhr = new XMLHttpRequest();
+
+        // адрес, куда мы отправим наш запрос
+        let url = "http://127.0.0.1:8000/show_line_id";
+
+        // открываем соединение
+        xhr.open("POST", url, true);
+
+        // устанавливаем заголовок — выбираем тип контента, который отправится на сервер,
+        // в нашем случае мы явно пишем, что это JSON
+        xhr.setRequestHeader("Content-Type", "application/json");
+
+        // когда придёт ответ на наше обращение к серверу, мы его обработаем здесь
+        xhr.onreadystatechange = function () {
+        // если запрос принят и сервер ответил, что всё в порядке
+            if (xhr.readyState === 4 && xhr.status === 200) {
+            // выводим то, что ответил нам сервер — так мы убедимся, что данные он получил правильно
+            result.innerHTML = this.responseText;
+
+            // удаляем из поля успешно записанное значение строки:
+            document.getElementById('primary_key').value = ''
+            }
+        };
+
+        // преобразуем наши данные JSON в строку
+        var data = JSON.stringify({ "primary_key": primary_key.value });
+
+        // когда всё готово, отправляем JSON на сервер
+        xhr.send(data);
+    }
+</script>
+
+
+<!-- скрипт, который обработает нажатие на кнопку и отправит данные на сервер -->
+<script>
+    // эта функция сработает при нажатии на кнопку "Заполнить БД из текстового файла"
+    function all_add_DB() {
+
+        // а вот сюда мы поместим ответ от сервера
+        let result = document.querySelector('.result');
+
+        // создаём новый экземпляр запроса XHR
+        let xhr = new XMLHttpRequest();
+
+        // адрес, куда мы отправим наш запрос
+        let url = "http://127.0.0.1:8000/all_add";
+
+        // открываем соединение
+        xhr.open("GET", url, true);
+
+        // устанавливаем заголовок — выбираем тип контента, который отправится на сервер,
+        // в случае "пустого" запроса GET по умолчанию устанавливается заголовок с типом "*/*"
+
+        // когда придёт ответ на наше обращение к серверу, мы его обработаем здесь
+            xhr.onreadystatechange = function () {
+            // если запрос принят и сервер ответил, что всё в порядке
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                // выводим то, что ответил нам сервер — так мы убедимся, что данные он получил правильно
+                result.innerHTML = this.responseText;
+
+                // здесь удалять из input нечего:
+                }
+            };
+
+        // когда всё готово, отправляем ПУСТОЙ JSON на сервер
+        xhr.send();
+    }
+</script>
