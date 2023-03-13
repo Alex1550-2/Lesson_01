@@ -1,35 +1,35 @@
-"""сервер для работы с базой данных postgres"""
+"""сервер для работы с базой данных postgres
+здесь только 'вьюхи',
+остальное выведено в models.py и __init__.py"""
+
+
 import sys
+import os
+import flask
 
 import psycopg2  # использую только для тестовых проверок связи
-from flask import Flask, render_template, request
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import asc, Identity
+from sqlalchemy import asc
+from sqlalchemy.sql import text
 from sqlalchemy.exc import SQLAlchemyError
 
 import const  # мой файл с контанстами
 
+from flask import render_template, request
+from flask import make_response
 
-app = Flask(__name__)
-"""приложение app отвечает за соединение с БД"""
-app.config[
-    "SQLALCHEMY_DATABASE_URI"
-] = "postgresql://postgres:1@localhost:5432/new_db"  # localhost
-app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
-db = SQLAlchemy(app)
+from app.models import db, Req, Result  # импортируем из папки app
+from app import create_app              # импортируем из папки app
+
+from flask import Flask
 
 
-class Requests(db.Model):  # pylint: disable=too-few-public-methods
-    """класс Запросы для БД
-    primary_key - основной ключ, unique - значение должно быть уникальным"""
-    id = db.Column(
-        db.Integer, Identity(always=True), autoincrement=True, primary_key=True, unique=True
-    )
-    request_text = db.Column(db.String(50), unique=True)
+app = Flask(__name__)  # это 'приложение' для работы с front-end
+app_db = create_app()  # это 'приложение' для работы с БД
 
-    def __repr__(self):
-        """«магическая» функция __repr__, которая определяет способ отображения класса в консоли:"""
-        return f"<request {self.id} {self.request_text}>"
+
+"""для функции upload_file:"""
+app.config['MAX_CONTENT_LENGTH'] = 1024 * 1024  # ограничение на загрузку .txt - 1 МБ
+app.config['UPLOAD_EXTENSIONS'] = ['.txt']
 
 
 @app.route("/")
@@ -37,7 +37,7 @@ class Requests(db.Model):  # pylint: disable=too-few-public-methods
 def index():
     """Это обработка запроса на сервер: вывод стартовой страницы index
     фактически это GET-запрос"""
-    server = {"server_name": "server_for_database.py"}
+    server = {"server_name": "server_DB.py"}
     return render_template("index_DB.html", server=server)
 
 
@@ -72,35 +72,31 @@ def process_json():
 def added_new_request(new_queries: str) -> str:
     """Функция записывает новую строку в БД
     генерация primary_key id автоматическая"""
-    with app.app_context():
+    with app_db.app_context():
         try:
             # определяем макс значение ключа id - current_max_id, чтобы добавить запись 'id+1'
-            temp_value = db.func.max(Requests.id)
-            current_max_id = db.session.query(temp_value).scalar()
+            # temp_value = db.func.max(Req.id)
+            # current_max_id = db.session.query(temp_value).scalar()
 
-            # костыль от пустой таблицы:
-            if current_max_id is None:
-                current_max_id = 0
-
-            new_value = Requests(id=current_max_id + 1, request_text=new_queries)
+            new_value = Req(request_text=new_queries)
 
             db.session.add(new_value)
             db.session.commit()  # нужен только при актуализации новой информации
             return (
-                """
+                    """
                 <center><p><b>"""
-                + new_queries
-                + """:</b> Новый запрос успешно записан в БД</p></center>
+                    + new_queries
+                    + """:</b> Новый запрос успешно записан в БД</p></center>
                """
             )
         except SQLAlchemyError:
             db.session.rollback()  # откатить сессию
             print("Ошибка записи в БД")
             return (
-                """
+                    """
                 <center><p><b>"""
-                + new_queries
-                + """:</b>Ошибка записи в БД</p></center>
+                    + new_queries
+                    + """:</b>Ошибка записи в БД</p></center>
                 """
             )
 
@@ -111,10 +107,10 @@ def get_process():
     if request.method == "GET":
         print(request)  # <Request 'http://127.0.0.1:8000/queries' [GET]>
 
-        with app.app_context():
+        with app_db.app_context():
             try:
                 # выборка с сортировкой по primary_key 'id' по возрастанию 'asc':
-                content = Requests.query.distinct().order_by(asc(Requests.id)).all()
+                content = Req.query.distinct().order_by(asc(Req.id)).all()
                 db.session.flush()  # сброс сессии
                 return convert_var_for_html(content)
             except SQLAlchemyError:
@@ -142,9 +138,18 @@ def delete_all():
     if request.method == "DELETE":
         print(request)  # <Request 'http://127.0.0.1:8000/delete' [DELETE]>
 
-        with app.app_context():
+        with app_db.app_context():
             try:
-                db.session.query(Requests).delete()
+                db.session.query(Req).delete()
+                # сброс счётчика autoincrement id на единицу:
+                # ALTER SEQUENCE <tablename>_<id>_seq RESTART WITH 1
+                db.session.execute(text("ALTER SEQUENCE google_req_id_seq RESTART WITH 1;"))
+
+                db.session.query(Result).delete()
+                # сброс счётчика autoincrement id на единицу:
+                # ALTER SEQUENCE <tablename>_<id>_seq RESTART WITH 1
+                db.session.execute(text("ALTER SEQUENCE result_info_id_seq RESTART WITH 1;"))
+
                 db.session.commit()
                 return """
                     <center><p>Удалены все запросы из таблицы БД</p></center>
@@ -176,38 +181,38 @@ def add_id_process():
                 primary_key = int(json["primary_key"])
                 new_text_queries = str(json["new_text_queries"])
 
-                # проверка primary_key на уникальность:
+                # если primary_key найден (return False), то 'поверх' записывать нельзя:
                 if not check_id(primary_key):  # if check_id(primary_key) == False:
                     return (
-                        """
+                            """
                     <center><p><b>"""
-                        + new_text_queries
-                        + """:</b> Ошибка записи (идентификатор id занят)</p></center>
+                            + new_text_queries
+                            + """:</b> Ошибка записи (идентификатор id занят)</p></center>
                     """
                     )
 
-                with app.app_context():
+                with app_db.app_context():
                     try:
-                        new_value = Requests(
+                        new_value = Req(
                             id=primary_key, request_text=new_text_queries
                         )
                         db.session.add(new_value)
                         db.session.commit()  # нужен только при актуализации новой информации
                         return (
-                            """
+                                """
                             <center><p><b>"""
-                            + new_text_queries
-                            + """:</b> Новый запрос успешно записан в БД</p></center>
+                                + new_text_queries
+                                + """:</b> Новый запрос успешно записан в БД</p></center>
                                        """
-                            )
+                        )
                     except SQLAlchemyError:
                         db.session.rollback()  # откатить сессию
                         print("Ошибка записи в БД")
                         return (
-                            """
+                                """
                         <center><p><b>"""
-                            + new_text_queries
-                            + """:</b>Ошибка записи в БД</p></center>
+                                + new_text_queries
+                                + """:</b>Ошибка записи в БД</p></center>
                         """
                         )
             except SQLAlchemyError:
@@ -219,14 +224,15 @@ def add_id_process():
 
 
 def check_id(id_key: int) -> bool:
-    """Функция проверяет, свободен ли уникальный primary_key - id
-    чтобы записать новую строку в БД с этим id"""
-    with app.app_context():
+    """Функция проверяет, записан ли в БД уникальный primary_key - id
+    чтобы отобразить существующую или записать новую строку в БД с этим id
+    Если записей с этим id не найдено, то возвращаем True"""
+    with app_db.app_context():
         try:
-            content = Requests.query.filter_by(id=id_key).all()
+            content = Req.query.filter_by(id=id_key).all()
             db.session.rollback()  # откатить сессию
 
-            # если нет записей с этим id
+            # если нет записей с этим id возвращаем True
             if len(content) == 0:
                 return True
             return False
@@ -248,29 +254,29 @@ def delete_id_process():
                 print(json)  # пример получаемого json: {'primary_key': '12'}
 
                 primary_key = str(json["primary_key"])
-                with app.app_context():
+                with app_db.app_context():
                     try:
-                        content = Requests.query.filter_by(id=primary_key).first()
+                        content = Req.query.filter_by(id=primary_key).first()
 
                         db.session.delete(content)
                         db.session.commit()  # сброс сессии flush() внутри commit()
                         return (
-                            """
+                                """
                             <center><p><b>id """
-                            + primary_key
-                            + """:</b> Запись удалена из БД</p></center>
+                                + primary_key
+                                + """:</b> Запись удалена из БД</p></center>
                             """
-                            )
+                        )
                     except SQLAlchemyError:
                         db.session.rollback()  # откатить сессию
                         print("Ошибка записи в БД")
                         return (
-                            """
+                                """
                             <center><p><b>id """
-                            + primary_key
-                            + """:</b>Ошибка удаления из БД</p></center>
+                                + primary_key
+                                + """:</b>Ошибка удаления из БД</p></center>
                             """
-                            )
+                        )
             except SQLAlchemyError:
                 return "Ошибка удаления из БД"
         else:
@@ -291,12 +297,23 @@ def show_id_process():
             print(json)  # пример получаемого json: {'primary_key': '12'}
 
             primary_key = str(json["primary_key"])
-            with app.app_context():
+
+            # если primary_key не найден (return True), то отображать нечего:
+            if check_id(int(primary_key)) is True:  # if check_id(primary_key) == False:
+                return (
+                        """
+                    <center><p><b>id """
+                        + primary_key
+                        + """:</b> Ошибка отображения (идентификатор id отсутствует в БД)</p></center>
+                               """
+                )
+
+            with app_db.app_context():
                 try:
-                    content = Requests.query.filter_by(id=primary_key).first()
+                    content = Req.query.filter_by(id=primary_key).first()
                     db.session.flush()  # сброс сессии
                     return (
-                        "<p>" + str(content.id) + ": " + content.request_text + "</p>"
+                            "<p>" + str(content.id) + ": " + content.request_text + "</p>"
                     )
                 except SQLAlchemyError:
                     db.session.rollback()  # откатить сессию
@@ -310,7 +327,7 @@ def show_id_process():
 
 @app.route("/all_add", methods=["GET"])
 def all_added():
-    """Функция заполняет БД строками из текстового файла"""
+    """Функция заполняет БД строками из текстового файла const.QUERIES_TXT"""
     text_file_name = const.QUERIES_TXT
 
     with open(text_file_name, "r", encoding="utf-8") as file1:
@@ -321,6 +338,35 @@ def all_added():
     return """
         <center><p>в БД записаны строки из файла</p></center>
         """
+
+
+@app.route("/", methods=["POST"])
+def upload_file():
+    """Функция выбирает через проводник текстовый файл,
+    заполняет БД его строками
+    и сохраняет в папку Text проекта
+    установлено ограничение: только .txt файлы не более 1 МБ"""
+    uploaded_file = request.files['file']
+
+    filename = uploaded_file.filename  # проверка допустимого расширения
+    file_ext = os.path.splitext(filename)[1]
+    if file_ext not in app.config['UPLOAD_EXTENSIONS']:
+        flask.abort(401)  # прерываем, если не .txt
+
+    file_contents = uploaded_file.stream.read().decode("utf-8")
+    print(file_contents)
+
+    worlds = file_contents.split("\n")  # метод split, сепаратор "\n"
+
+    for current in worlds:
+        if current != "":  # защита от пустой строки
+            current = current.replace("\r", "")  # удаляем перевод курсора в начало "\r"
+            added_new_request(current)
+
+    response = make_response('', 301)
+    response.data = "<link rel='icon' href='data:,'><p>Содержимое выбранного текстового файла:</p><p>" + \
+                    file_contents + "</p><p>Для возврата перейдите на страницу 'index'</p>"
+    return response
 
 
 # реализация через psycopg2
@@ -377,7 +423,12 @@ def get_content():
 
 
 if __name__ == "__main__":
-    print("my_server: process started")
-    from waitress import serve
+    # "создаём" БД внутри нашего приложения app
+    with app_db.app_context():
+        db.create_all()
 
+    print("my_server: process started")
+
+    # запускаем наше приложение app
+    from waitress import serve  # app(run) не использовать !!!
     serve(app, host="127.0.0.1", port=8000)  # http://127.0.0.1:8000

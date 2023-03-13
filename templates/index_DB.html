@@ -46,11 +46,18 @@
 
         <p>
             <!-- запрос "GET": старт процедуры заполнения БД из файла: -->
-            <button onclick="all_add_DB()">Заполнить БД из текстового файла</button>
+            <button onclick="all_add_DB()">Заполнить БД из текстового файла "const.QUERIES_TXT"</button>
         </p>
 
             <!-- здесь вернётся ответ от сервера: -->
         <p class="result" style="color:blue"></p>
+
+    <!-- Открыть файл .txt через проводник: -->
+     <form method="POST" action="" enctype="multipart/form-data">
+      <p><input type="file" name="file"></p>
+      <p><input type="submit" value="Submit"></p>
+    </form>
+
     </body>
 
     <!-- "хлебные крошки": вывод в консоль значения "10":

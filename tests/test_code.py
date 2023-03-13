@@ -3,7 +3,7 @@ import os
 import requests
 from pytest_mock import mocker
 
-from main import (
+from main_txt import (
     add_new_queries,
     clear_text_file,
     get_all_queries,
@@ -105,7 +105,7 @@ def test_read_ini():
     """
 
 
-from main import print_string_from_file, temp_print_settings
+from main_txt import print_string_from_file, temp_print_settings
 
 
 def test_test_test(mocker):
@@ -123,7 +123,7 @@ def test_print_string_from_file(mocker):
 
 # 1) как сослаться на мокер ???
 # 2) при запуске только этого теста идёт ошибка открытия файла
-# 	..\main.py:199: FileNotFoundError
+# 	..\main_txt.py:199: FileNotFoundError
 #    	with open("Text/queries.txt", "r", encoding="utf-8") as file1:
 
 
