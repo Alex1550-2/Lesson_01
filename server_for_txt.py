@@ -4,7 +4,7 @@ from pathlib import Path
 from flask import Flask, render_template, request
 
 import const  # мой файл с контанстами
-from main import add_new_queries, clear_text_file, get_all_queries
+from main_txt import add_new_queries, clear_text_file, get_all_queries
 
 app = Flask(__name__)
 """app = Flask(__name__, template_folder=template_dir)
@@ -16,7 +16,7 @@ app = Flask(__name__)
 def index():
     """Это обработка запроса на сервер: вывод стартовой страницы index
     фактически это GET-запрос"""
-    server = {"server_name": "my_server_for_txt.py"}
+    server = {"server_name": "server_for_txt.py"}
     return render_template("index.html", server=server)
     # return render_template("index.html")
 

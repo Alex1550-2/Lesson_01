@@ -109,8 +109,10 @@ def get_link(link: str) -> str:
     return link
 
 
-def parsing(line: str, pages: int):
+def parsing(line: str, pages: int) -> list[dict[str, str]]:
     """получаем ссылки из страницы"""
+    dictionary_list: list = []  # основной список словарей для результатов
+
     for i in range(1, pages + 1):
         url = "https://www.google.ru/search?q=" + line + "&start=" + str((i - 1) * 10)
 
@@ -141,7 +143,14 @@ def parsing(line: str, pages: int):
 
                 # вывод на печать значений != None:
                 if any(link_object) and any(link_name):
-                    print(link_object + " " + link_name.text)
+                    # print(link_object + " " + link_name.text)
+                    dictionary_list.append(
+                        {
+                            "link": link_object,
+                            "text": link_name.text
+                        }
+                    )
+    return dictionary_list
 
 
 def main():
@@ -176,7 +185,11 @@ def main():
                     print("========================")
 
                     # здесь запускаем функцию parsing
-                    parsing(line, pages)
+                    dictionary_list = parsing(line, pages)
+
+                    # вывод содержимого словаря с результатами на печать:
+                    for len_list in range(0, len(dictionary_list)):
+                        print(dictionary_list[len_list]["link"] + " " + dictionary_list[len_list]["text"])
 
                     # ждём секунду:
                     wait(wait_ms)
