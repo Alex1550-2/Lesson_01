@@ -12,7 +12,7 @@ migrate = Migrate()
 
 def create_app():
     """Создаём приложение app для связи с БД postgres"""
-    app = Flask(__name__)
+    app = Flask(__name__, template_folder="templates/")
 
     app.config[
         "SQLALCHEMY_DATABASE_URI"

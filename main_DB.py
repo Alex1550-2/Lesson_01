@@ -70,6 +70,7 @@ def main():
                         try:
                             new_value = Result(
                                 id_req=current+1,  # равно primary_key id из "google_req" ?
+                                request_text=content[current].request_text,
                                 res_link=dictionary_list[len_list]["link"],
                                 res_text=dictionary_list[len_list]["text"]
                                 )

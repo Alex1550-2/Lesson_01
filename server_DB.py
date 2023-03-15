@@ -20,11 +20,8 @@ from flask import make_response
 from app.models import db, Req, Result  # импортируем из папки app
 from app import create_app              # импортируем из папки app
 
-from flask import Flask
 
-
-app = Flask(__name__)  # это 'приложение' для работы с front-end
-app_db = create_app()  # это 'приложение' для работы с БД
+app = create_app()  # это 'приложение' для работы с БД
 
 
 """для функции upload_file:"""
@@ -72,7 +69,7 @@ def process_json():
 def added_new_request(new_queries: str) -> str:
     """Функция записывает новую строку в БД
     генерация primary_key id автоматическая"""
-    with app_db.app_context():
+    with app.app_context():
         try:
             # определяем макс значение ключа id - current_max_id, чтобы добавить запись 'id+1'
             # temp_value = db.func.max(Req.id)
@@ -107,7 +104,7 @@ def get_process():
     if request.method == "GET":
         print(request)  # <Request 'http://127.0.0.1:8000/queries' [GET]>
 
-        with app_db.app_context():
+        with app.app_context():
             try:
                 # выборка с сортировкой по primary_key 'id' по возрастанию 'asc':
                 content = Req.query.distinct().order_by(asc(Req.id)).all()
@@ -138,7 +135,7 @@ def delete_all():
     if request.method == "DELETE":
         print(request)  # <Request 'http://127.0.0.1:8000/delete' [DELETE]>
 
-        with app_db.app_context():
+        with app.app_context():
             try:
                 db.session.query(Req).delete()
                 # сброс счётчика autoincrement id на единицу:
@@ -191,7 +188,7 @@ def add_id_process():
                     """
                     )
 
-                with app_db.app_context():
+                with app.app_context():
                     try:
                         new_value = Req(
                             id=primary_key, request_text=new_text_queries
@@ -227,7 +224,7 @@ def check_id(id_key: int) -> bool:
     """Функция проверяет, записан ли в БД уникальный primary_key - id
     чтобы отобразить существующую или записать новую строку в БД с этим id
     Если записей с этим id не найдено, то возвращаем True"""
-    with app_db.app_context():
+    with app.app_context():
         try:
             content = Req.query.filter_by(id=id_key).all()
             db.session.rollback()  # откатить сессию
@@ -254,7 +251,7 @@ def delete_id_process():
                 print(json)  # пример получаемого json: {'primary_key': '12'}
 
                 primary_key = str(json["primary_key"])
-                with app_db.app_context():
+                with app.app_context():
                     try:
                         content = Req.query.filter_by(id=primary_key).first()
 
@@ -269,7 +266,7 @@ def delete_id_process():
                         )
                     except SQLAlchemyError:
                         db.session.rollback()  # откатить сессию
-                        print("Ошибка записи в БД")
+                        print("Ошибка удаления из БД")
                         return (
                                 """
                             <center><p><b>id """
@@ -308,7 +305,7 @@ def show_id_process():
                                """
                 )
 
-            with app_db.app_context():
+            with app.app_context():
                 try:
                     content = Req.query.filter_by(id=primary_key).first()
                     db.session.flush()  # сброс сессии
@@ -424,7 +421,7 @@ def get_content():
 
 if __name__ == "__main__":
     # "создаём" БД внутри нашего приложения app
-    with app_db.app_context():
+    with app.app_context():
         db.create_all()
 
     print("my_server: process started")
