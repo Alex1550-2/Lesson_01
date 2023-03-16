@@ -1,5 +1,5 @@
 """скрипт для записи поисковых запросов для бесконечного цикла
-из файла txt в теблицу settings_cycle (класс Req) БД"""
+из файла const.QUERIES_TXT в теблицу settings_cycle (класс Req) БД"""
 from sqlalchemy.exc import SQLAlchemyError
 
 from app.models import db, Req  # импортируем из папки app

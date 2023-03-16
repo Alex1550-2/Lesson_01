@@ -6,7 +6,7 @@ from flask import Flask, render_template, request
 import const  # мой файл с контанстами
 from main_txt import add_new_queries, clear_text_file, get_all_queries
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="app/templates/")
 """app = Flask(__name__, template_folder=template_dir)
 по умолчанию template_folder='templates' и её можно не указывать"""
 

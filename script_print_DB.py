@@ -18,7 +18,8 @@ def script_print_db():
             db.session.rollback()  # откатить сессию
             print("Ошибка чтения из БД")
     for current in content:
-        print(str(current.id) + " " + str(current.id_req) + " " + current.res_link + " " + current.res_text)
+        print(str(current.id) + " " + str(current.id_req) + " " + current.request_text +
+              " " + current.res_link + " " + current.res_text)
 
 
 if __name__ == "__main__":
