@@ -43,11 +43,12 @@ def process_json():
                     + """:</b> Новый запрос успешно записан в файл</p></center>
                     """
                 )
-            else:
-                return """
-                    <p>Ошибка записи нового запроса</p>"""
-        else:
-            return "Content-Type not supported!"
+            # else:  # на эту конструкцию ругается pylint, return сдвинут влево
+            return """
+                <p>Ошибка записи нового запроса</p>"""
+        # else:  # на эту конструкцию ругается pylint, return сдвинут влево
+        return "Content-Type not supported!"
+    return "Error POST '/queries'"
 
 
 @app.route("/queries", methods=["GET"])
@@ -66,6 +67,7 @@ def get_process():
             + content
             + """</p>"""
         )
+    return "Error GET '/queries'"
 
 
 @app.route("/queries", methods=["DELETE"])
@@ -79,10 +81,11 @@ def delete_all_process():
         clear_text_file(file_name_queries_txt)
         return """
             <p>Выполнена очистка текстового файла</p>"""
+    return "Error DELETE '/queries'"
 
 
 if __name__ == "__main__":
-    """http://127.0.0.1:5080 ссылка для браузера"""
+    # http://127.0.0.1:5080 ссылка для браузера
     print("my_server: process started")
     from waitress import serve
 

@@ -3,6 +3,7 @@ This is for copy
 """
 
 import time
+
 import keyboard
 
 """
@@ -54,8 +55,6 @@ for current in range(start, line_count + 1):            # нумерация с 
 """
 
 # file1.seek(0) - переход к началу текстового файла (в скобках номер байта, с которого читаем)
-
-
 
 
 def wait_test(ms):

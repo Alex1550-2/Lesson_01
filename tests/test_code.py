@@ -1,7 +1,6 @@
 import os
 
 import requests
-from pytest_mock import mocker
 
 from main_txt import (
     add_new_queries,
@@ -103,52 +102,3 @@ def test_read_ini():
     test_start_settings = read_ini(file_name)
     assert test_start_settings[1] == 2000
     """
-
-
-from main_txt import print_string_from_file, temp_print_settings
-
-
-def test_test_test(mocker):
-    mocker.patch("main.temp_print_settings", return_value=1)
-    assert temp_print_settings() == 1
-
-
-def test_print_string_from_file(mocker):
-    mocker.patch("main.temp_print_settings", return_value=1)
-    string_number = temp_print_settings()
-    assert (
-        print_string_from_file(string_number) == "рамп купить закладку болтушка в тула"
-    )
-
-
-# 1) как сослаться на мокер ???
-# 2) при запуске только этого теста идёт ошибка открытия файла
-# 	..\main_txt.py:199: FileNotFoundError
-#    	with open("Text/queries.txt", "r", encoding="utf-8") as file1:
-
-
-def temp_print_settings(file_name_set_ini: str) -> int:
-    """извлекаем номер стартовой строки"""
-    start_settings = read_ini(file_name_set_ini)
-    # извлекаем из кортежа tuple значения начальных настроек:
-    print(start_settings[0])  # номер "стартовой" строки
-    return start_settings[0]
-
-
-def print_string_from_file(file_name_queries_txt: str, string_number: int):
-    """распечатываем стартовую строку по её номеру"""
-    print(string_number)
-    with open(file_name_queries_txt, "r", encoding="utf-8") as file1:
-        information = file1.readlines()
-    my_string = information[string_number - 1].strip()
-    print(my_string)
-    return my_string
-
-
-# def test_print_string_from_file(mocker):
-#     mocker.patch("main.temp_print_settings", return_value=1)
-#     file_name_queries_txt = replace_symbol(os.path.abspath(os.path.join(this_dir(), os.pardir)) + "/" + queries_txt)
-#     print(file_name_queries_txt)
-#     temp_string = print_string_from_file(file_name_queries_txt, temp_print_settings(file_name_queries_txt))
-#     print(temp_string)
-#     assert temp_string == "рамп купить закладку болтушка в тула"

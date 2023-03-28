@@ -2,13 +2,15 @@
 запись результатов в БД и print, front отсутствует
 """
 import sys
+from datetime import datetime
+
 from sqlalchemy import asc
 from sqlalchemy.exc import SQLAlchemyError
 
-from main_txt import wait, parsing
-
-from app.models import db, Req, Set, Result     # импортируем из папки app
-from app import create_app                      # импортируем из папки app
+from app import create_app  # импортируем из папки app
+from app.models import Req, Result, Set, db  # импортируем из папки app
+from main_txt import parsing, wait
+from starter import read_settings
 
 app_db = create_app()  # это 'приложение' для работы с БД
 
@@ -16,25 +18,12 @@ app_db = create_app()  # это 'приложение' для работы с Б
 def main():
     """скрипт: бесконечный цикл чтения строк из БД>"""
     # определяем значения начальных настроек:
-    with app_db.app_context():
-        try:
-            value = db.session.query(Set).filter(Set.id == 1).first()
-            if value is not None:
-                print(f"значения начальных настроек: {value.id} {value.start_string}"
-                      f" {value.wait_interval} {value.search_page_number}")
-                start = value.start_string          # номер "стартовой" строки
-                wait_ms = value.wait_interval       # интервал опроса
-                pages = value.search_page_number    # количество запрашиваемых страниц поиска
-            else:
-                print("Начальные натройки отсутствуют в БД")
-                # завершаем процесс:
-                sys.exit()
+    start_settings = read_settings()
 
-        except SQLAlchemyError:
-            db.session.rollback()  # откатить сессию
-            print("Ошибка чтения начальных натроек в БД")
-            # завершаем процесс:
-            sys.exit()
+    # извлекаем из кортежа tuple значения начальных настроек:
+    start = start_settings[0]  # номер "стартовой" строки
+    wait_ms = start_settings[1]  # интервал опроса
+    pages = start_settings[2]  # количество запрашиваемых страниц поиска
 
     current = 0  # номер итерации в цикле
 
@@ -45,7 +34,7 @@ def main():
             with app_db.app_context():
                 try:
                     # выборка с сортировкой по primary_key 'id' по возрастанию 'asc':
-                    content = Req.query.distinct().order_by(asc(Req.id)).all()
+                    content = Req.query.order_by(asc(Req.id)).all()
 
                     db.session.flush()  # сброс сессии
                     print(content)
@@ -62,28 +51,35 @@ def main():
                 print("========================")
 
                 # форируем список словарей из ссылок и их текстового описания:
-                dictionary_list = parsing(content[current].request_text, pages)
+                link_list = parsing(content[current].request_text, pages)
 
                 # записываем в таблицу result_info БД результаты поиска:
-                for len_list in range(0, len(dictionary_list)):
+                for current_link in link_list:
+                    # текущее дата-время::
+                    date_time = datetime.now().isoformat()
+
                     with app_db.app_context():
                         try:
                             new_value = Result(
-                                id_req=current+1,  # равно primary_key id из "google_req" ?
+                                id_req=content[
+                                    current
+                                ].id,  # равно primary_key id из "google_req"
                                 request_text=content[current].request_text,
-                                res_link=dictionary_list[len_list]["link"],
-                                res_text=dictionary_list[len_list]["text"]
-                                )
+                                res_link=current_link["link"],
+                                res_text=current_link["text"],
+                                timestamp=date_time,
+                            )
                             db.session.add(new_value)
                             db.session.commit()  # нужен только при актуализации новой информации
 
-                            print(dictionary_list[len_list]["link"] + " " + dictionary_list[len_list]["text"])
+                            print(current_link["link"] + " " + current_link["text"])
 
                         except SQLAlchemyError:
                             db.session.rollback()  # откатить сессию
                             print("Ошибка записи в БД")
                             # завершаем процесс:
                             sys.exit()
+
             # следующий цикл считывания начинаемс первой строки:
             start = 1
 
@@ -97,11 +93,11 @@ def main():
                 try:
                     new_value = db.session.query(Set).filter(Set.id == 1).first()
                     if new_value is not None:
-                        new_value.start_string = current+2  # номер "стартовой" строки
+                        new_value.start_string = current + 2  # номер "стартовой" строки
                         db.session.commit()  # сохраняем изменения
 
                         # проверка:
-                        print("будущая строка: " + str(current+2))
+                        print("будущая строка: " + str(current + 2))
 
                 except SQLAlchemyError:
                     db.session.rollback()  # откатить сессию
