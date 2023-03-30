@@ -111,7 +111,7 @@ def get_link(link: str) -> str:
 
 def parsing(line: str, pages: int) -> list[dict[str, str]]:
     """получаем ссылки из страницы"""
-    dictionary_list: list = []  # основной список словарей для результатов
+    result_list: list = []  # основной список словарей для результатов
 
     for i in range(1, pages + 1):
         url = "https://www.google.ru/search?q=" + line + "&start=" + str((i - 1) * 10)
@@ -144,13 +144,8 @@ def parsing(line: str, pages: int) -> list[dict[str, str]]:
                 # вывод на печать значений != None:
                 if any(link_object) and any(link_name):
                     # print(link_object + " " + link_name.text)
-                    dictionary_list.append(
-                        {
-                            "link": link_object,
-                            "text": link_name.text
-                        }
-                    )
-    return dictionary_list
+                    result_list.append({"link": link_object, "text": link_name.text})
+    return result_list
 
 
 def main():
@@ -185,11 +180,11 @@ def main():
                     print("========================")
 
                     # здесь запускаем функцию parsing
-                    dictionary_list = parsing(line, pages)
+                    link_list = parsing(line, pages)  # список словарей
 
-                    # вывод содержимого словаря с результатами на печать:
-                    for len_list in range(0, len(dictionary_list)):
-                        print(dictionary_list[len_list]["link"] + " " + dictionary_list[len_list]["text"])
+                    # вывод содержимого списка словарей (Link_list) на печать:
+                    for current_link in link_list:
+                        print(current_link["link"] + " " + current_link["text"])
 
                     # ждём секунду:
                     wait(wait_ms)
@@ -252,14 +247,16 @@ def clear_text_file(file_name: str):
 
 
 def save_file_html(searh_phrase: str):
+    """временная функция"""
     url = "https://www.google.ru/search?q=" + searh_phrase + '&start="10'
-    r = requests.get(url)  # url - ссылка
-    html = r.text
+    requ = requests.get(url)  # url - ссылка
+    html = requ.text
     print(html)
     return html
 
 
 def new_parse(page):
+    """временная функция"""
     soup = BeautifulSoup(page, "html.parser")
 
     link_names_list = soup.findAll("h3")
