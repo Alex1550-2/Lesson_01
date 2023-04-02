@@ -22,13 +22,14 @@ def wait(time_interval: int):
     )
     step_sleep = time_interval // delta_sleep
 
-    i: int = 1
+    i: int = 1  # лучше называть переменную полными словами, описывающими на
+    # что она ссылается, напиример 'interval_counter'
     while i < step_sleep:
         i += 1
         time.sleep(0.05)
 
 
-def get_file_name() -> tuple:
+def get_file_name() -> tuple[str]:
     """Определяем абсолютные пути текстовых файлов проекта"""
     # {WindowsPath} C:\Users\user\PycharmProjects\Lesson_01
     project_directory = Path(__file__).resolve(strict=True).parent
@@ -43,6 +44,7 @@ def get_file_name() -> tuple:
 
 
 def replace_symbol(string: str) -> str:
+    # it's better to rename to 'replace_prohibited_symbols'
     """Функция возвращает строку без запрещённых / нежелательных символов в имени файла"""
     string = string.replace(" ", "")
     string = string.replace(".", "_")
@@ -56,11 +58,17 @@ def read_ini(file_name: str) -> tuple:
     conf.read(file_name)
 
     result = (
-        conf.getint("base_settings", "start_string"),
+        conf.getint("base_settings", "start_string"),  # 1. method name like we
+        # are getting int here, but arguments say about string
+        # 2. couldn't install dependencies
+        # [pipenv.exceptions.ResolutionFailure]: Warning: Your dependencies
+        # could not be resolved. You likely have a mismatch in your
+        # sub-dependencies.
         conf.getint("base_settings", "wait_interval"),
         conf.getint("base_settings", "search_page_number"),
     )
-    # print(result)
+    # print(result)  # it's better to study pdb, PyCharm debugger and use
+    # them instead of print()
     return result
 
 
@@ -113,7 +121,7 @@ def parsing(line: str, pages: int) -> list[dict[str, str]]:
     """получаем ссылки из страницы"""
     result_list: list = []  # основной список словарей для результатов
 
-    for i in range(1, pages + 1):
+    for i in range(1, pages + 1):  # rename 'i' to speaking name
         url = "https://www.google.ru/search?q=" + line + "&start=" + str((i - 1) * 10)
 
         # проверка: вывод фактического url, отправленного поисковику
@@ -142,7 +150,7 @@ def parsing(line: str, pages: int) -> list[dict[str, str]]:
                 link_object = get_link(str(link_name.find_parent("a")))
 
                 # вывод на печать значений != None:
-                if any(link_object) and any(link_name):
+                if link_object is not None and link_name is not None:
                     # print(link_object + " " + link_name.text)
                     result_list.append({"link": link_object, "text": link_name.text})
     return result_list
@@ -151,14 +159,19 @@ def parsing(line: str, pages: int) -> list[dict[str, str]]:
 def main():
     """скрипт: бесконечный цикл чтения строк из текстового файла"""
     # определяем абсолютные имена текстовых файлов из const.py:
-    file_names_tuple = get_file_name()
-    file_name_set_ini = file_names_tuple[0]
-    file_name_queries_txt = file_names_tuple[1]
+    file_names: tuple[str] = get_file_name()  # есть указание типов для
+    # переменных. В названии тип не указывается
+    file_name_set_ini = file_names[0]
+    file_name_queries_txt = file_names[1]
 
     # читаем настройки из ini-файла:
     start_settings = read_ini(file_name_set_ini)
 
     # извлекаем из кортежа tuple значения начальных настроек:
+    # наличие большого количества комментариев говорит о том, что нужно
+    # выбрать другую структуру данных, например именованный кортеж или
+    # словарь и дать имена полей, например:
+    # start_row_number, query_interval, page_quantity
     start = start_settings[0]  # номер "стартовой" строки
     wait_ms = start_settings[1]  # интервал опроса
     pages = start_settings[2]  # количество запрашиваемых страниц поиска
@@ -169,9 +182,13 @@ def main():
     # бесконечный цикл:
     while True:
         try:
-            with open(file_name_queries_txt, "r", encoding="utf-8") as file1:
-                contents = file1.readlines()
+            with open(file_name_queries_txt, "r", encoding="utf-8") as query_file:
+                # лучше читать по одной строке или указывать ограничение по
+                # байтам - сколько скачивать, чтобы контролировать
+                # использование памяти
+                contents = query_file.readlines()
 
+                # не понятно почему начинаем со строки, идущей перед стартовой
                 for current in range(start - 1, len(contents)):
                     line = contents[current].strip()
 
@@ -180,11 +197,13 @@ def main():
                     print("========================")
 
                     # здесь запускаем функцию parsing
-                    link_list = parsing(line, pages)  # список словарей
+                    link_list: list[dict] = parsing(line, pages)
 
                     # вывод содержимого списка словарей (Link_list) на печать:
                     for current_link in link_list:
-                        print(current_link["link"] + " " + current_link["text"])
+                        # + concatenation is the slowest type of string
+                        # formatting. f-string the fastest
+                        print(f"{current_link['link']} {current_link['text']}")
 
                     # ждём секунду:
                     wait(wait_ms)
@@ -195,6 +214,13 @@ def main():
         # обрабатываем исключение прерывания "Stop" или "Ctrl-C":
         except KeyboardInterrupt:
             # записываем в .ini "стартовую" строку для следующего запуска:
+            # несмотря на наличие возможности сохранять программно в
+            # конфигурационный файл, это плохая практика и может привести к
+            # багам, которые сложно диагностировать. Нужно будет идти в
+            # контейнер, где развёрнуто приложение и там смотреть состояние.
+            # обычно, конфигурационные файлы статичны и меняются переменными
+            # окружения. В данном случае лучше использовать отдельный файл
+            # для этой цели.
             write_ini(file_name_set_ini, 1, current + 2)
 
             # завершаем процесс:
@@ -204,6 +230,8 @@ def main():
 def add_new_queries(new_queries: str, file_name_queries_txt: str) -> bool:
     """Функция добавляет новый запрос new_queries в файл file_name_queries_txt
     ответ на POST-запрос
+    Хорошо бы высокоуровнево описать здесь в каком случае
+    возвращается True / False
     """
     try:
         with open(file_name_queries_txt, "a", encoding="utf-8") as file:
@@ -239,6 +267,7 @@ def get_all_queries(file_name_queries_txt: str) -> json:
 
 
 def clear_text_file(file_name: str):
+    # имя и докстринга функции не соответствуют телу
     """Функция очищает файл file_name
     ответ на DELETE-запрос
     """
@@ -248,11 +277,20 @@ def clear_text_file(file_name: str):
 
 def save_file_html(searh_phrase: str):
     """временная функция"""
+    # уже писал про конкатинацию. Кроме того, для УРЛ лучше использовать
+    # специальные библиотеки для корректной сборку урла. Например,
+    # >>> from yarl import URL
+    # >>> url = URL('https://www.python.org/~guido?arg=1#frag')
+    # >>> url
+    # URL('https://www.python.org/~guido?arg=1#frag')
+    # >>> url.human_repr()
+    # 'https://www.python.org/путь'
+    # For full documentation please read https://yarl.readthedocs.org.
     url = "https://www.google.ru/search?q=" + searh_phrase + '&start="10'
-    requ = requests.get(url)  # url - ссылка
-    html = requ.text
-    print(html)
-    return html
+    response = requests.get(url)  # url - ссылка
+    page_html = response.text
+    print(page_html)
+    return page_html
 
 
 def new_parse(page):
@@ -279,11 +317,11 @@ def temp_print_settings(file_name_set_ini: str) -> int:
     return start_settings[0]
 
 
-def print_string_from_file(file_name_queries_txt: str, string_number: int):
+def print_string_from_file(file_path: str, string_number: int):
     """распечатываем стартовую строку по её номеру"""
     print(string_number)
-    with open(file_name_queries_txt, "r", encoding="utf-8") as file1:
-        information = file1.readlines()
+    with open(file_path, "r", encoding="utf-8") as query_file:
+        information = query_file.readlines()
     my_string = information[string_number - 1].strip()
     print(my_string)
     return my_string
